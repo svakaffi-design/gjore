@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GJØRE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 80px;
+    }
+
+    h1 {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    #editor {
+      width: 500px;
+      max-width: 90vw;
+    }
+
+    .bullet-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .bullet {
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .bullet-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      width: 100%;
+      caret-color: #fff;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h1>GJØRE</h1>
+  <div id="editor"></div>
+
+  <script>
+    const editor = document.getElementById('editor');
+
+    function addLine(afterElement) {
+      const line = document.createElement('div');
+      line.className = 'bullet-line';
+
+      const bullet = document.createElement('span');
+      bullet.className = 'bullet';
+      bullet.textContent = '•';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'bullet-input';
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addLine(line);
+        } else if (e.key === 'Backspace' && input.value === '') {
+          const prev = line.previousElementSibling;
+          if (prev) {
+            e.preventDefault();
+            line.remove();
+            const prevInput = prev.querySelector('.bullet-input');
+            prevInput.focus();
+          }
+        }
+      });
+
+      line.appendChild(bullet);
+      line.appendChild(input);
+
+      if (afterElement) {
+        afterElement.insertAdjacentElement('afterend', line);
+      } else {
+        editor.appendChild(line);
+      }
+
+      input.focus();
+      return line;
+    }
+
+    addLine(null);
+  </script>
+</body>
+</html>
