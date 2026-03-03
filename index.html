@@ -67,16 +67,15 @@ h1 {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
+import {
+  getFirestore,
+  collection,
+  addDoc,
   deleteDoc,
+  updateDoc,
   doc,
-  onSnapshot, 
-  query, 
-  orderBy,
-  serverTimestamp 
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -90,9 +89,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 const bulletsRef = collection(db, "bullets");
-const bulletsQuery = query(bulletsRef, orderBy("created"));
 
 const editor = document.getElementById("editor");
 
@@ -109,23 +106,34 @@ function createLine(text = "", id = null) {
   input.className = "bullet-input";
   input.value = text;
 
+  // ➕ Legg til nytt punkt
   input.addEventListener("keydown", async (e) => {
-
-    // ➕ Legg til
     if (e.key === "Enter") {
       e.preventDefault();
       if (input.value.trim() !== "") {
         await addDoc(bulletsRef, {
-          text: input.value,
+          text: input.value.trim(),
           created: serverTimestamp()
         });
       }
     }
+  });
 
-    // 🗑️ Slett
-    if (e.key === "Backspace" && input.value === "" && id) {
-      e.preventDefault();
+  // ✏️ Oppdater eller slett ved blur
+  input.addEventListener("blur", async () => {
+    const value = input.value.trim();
+
+    if (!id && value === "") return;
+
+    if (id && value === "") {
       await deleteDoc(doc(db, "bullets", id));
+      return;
+    }
+
+    if (id && value !== "") {
+      await updateDoc(doc(db, "bullets", id), {
+        text: value
+      });
     }
   });
 
@@ -134,10 +142,10 @@ function createLine(text = "", id = null) {
   editor.appendChild(line);
 }
 
-// 🔄 Live sync
-onSnapshot(bulletsQuery, (snapshot) => {
+// 🔄 Live synk
+onSnapshot(bulletsRef, (snapshot) => {
   editor.innerHTML = "";
-  snapshot.forEach(docSnap => {
+  snapshot.forEach((docSnap) => {
     createLine(docSnap.data().text, docSnap.id);
   });
   createLine(); // tom linje nederst
