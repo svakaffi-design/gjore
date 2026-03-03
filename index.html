@@ -71,6 +71,8 @@ import {
   getFirestore, 
   collection, 
   addDoc, 
+  deleteDoc,
+  doc,
   onSnapshot, 
   query, 
   orderBy,
@@ -94,7 +96,7 @@ const bulletsQuery = query(bulletsRef, orderBy("created"));
 
 const editor = document.getElementById("editor");
 
-function createLine(text = "") {
+function createLine(text = "", id = null) {
   const line = document.createElement("div");
   line.className = "bullet-line";
 
@@ -108,15 +110,22 @@ function createLine(text = "") {
   input.value = text;
 
   input.addEventListener("keydown", async (e) => {
+
+    // ➕ Legg til
     if (e.key === "Enter") {
       e.preventDefault();
-
       if (input.value.trim() !== "") {
-        await addDoc(bulletsRef, { 
+        await addDoc(bulletsRef, {
           text: input.value,
           created: serverTimestamp()
         });
       }
+    }
+
+    // 🗑️ Slett
+    if (e.key === "Backspace" && input.value === "" && id) {
+      e.preventDefault();
+      await deleteDoc(doc(db, "bullets", id));
     }
   });
 
@@ -128,10 +137,10 @@ function createLine(text = "") {
 // 🔄 Live sync
 onSnapshot(bulletsQuery, (snapshot) => {
   editor.innerHTML = "";
-  snapshot.forEach(doc => {
-    createLine(doc.data().text);
+  snapshot.forEach(docSnap => {
+    createLine(docSnap.data().text, docSnap.id);
   });
-  createLine(); // alltid én tom linje nederst
+  createLine(); // tom linje nederst
 });
 </script>
 
