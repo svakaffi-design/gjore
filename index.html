@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GJØRE</title>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -20,7 +21,6 @@
     }
 
     h1 {
-      font-family: 'Courier New', monospace;
       font-size: 14px;
       font-weight: bold;
       letter-spacing: 0.1em;
@@ -58,104 +58,67 @@
     }
   </style>
 </head>
+
 <body>
   <h1>GJØRE</h1>
   <div id="editor"></div>
 
-  <script>
-    const editor = document.getElementById('editor');
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    function addLine(afterElement) {
-      const line = document.createElement('div');
-      line.className = 'bullet-line';
+    // 🔥 LIM INN DIN EGEN CONFIG HER
+    const firebaseConfig = {
+      apiKey: "LIM_INN_DIN_CONFIG_HER",
+      authDomain: "LIM_INN_DIN_CONFIG_HER",
+      projectId: "LIM_INN_DIN_CONFIG_HER",
+      storageBucket: "LIM_INN_DIN_CONFIG_HER",
+      messagingSenderId: "LIM_INN_DIN_CONFIG_HER",
+      appId: "LIM_INN_DIN_CONFIG_HER"
+    };
 
-      const bullet = document.createElement('span');
-      bullet.className = 'bullet';
-      bullet.textContent = '•';
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const bulletsRef = collection(db, "bullets");
 
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'bullet-input';
+    const editor = document.getElementById("editor");
 
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+    function createInput(text = "") {
+      const line = document.createElement("div");
+      line.className = "bullet-line";
+
+      const bullet = document.createElement("span");
+      bullet.className = "bullet";
+      bullet.textContent = "•";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "bullet-input";
+      input.value = text;
+
+      input.addEventListener("keydown", async (e) => {
+        if (e.key === "Enter") {
           e.preventDefault();
-          addLine(line);
-        } else if (e.key === 'Backspace' && input.value === '') {
-          const prev = line.previousElementSibling;
-          if (prev) {
-            e.preventDefault();
-            line.remove();
-            const prevInput = prev.querySelector('.bullet-input');
-            prevInput.focus();
+          if (input.value.trim() !== "") {
+            await addDoc(bulletsRef, { text: input.value });
           }
         }
       });
 
       line.appendChild(bullet);
       line.appendChild(input);
-
-      if (afterElement) {
-        afterElement.insertAdjacentElement('afterend', line);
-      } else {
-        editor.appendChild(line);
-      }
-
-      input.focus();
-      return line;
+      editor.appendChild(line);
     }
 
-    addLine(null);
+    // 🔄 Live sync
+    onSnapshot(bulletsRef, (snapshot) => {
+      editor.innerHTML = "";
+      snapshot.forEach(doc => {
+        createInput(doc.data().text);
+      });
+      createInput(); // tom linje nederst
+    });
   </script>
-  <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot } 
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "DIN_CONFIG_HER",
-    authDomain: "DIN_CONFIG_HER",
-    projectId: "DIN_CONFIG_HER",
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const bulletsRef = collection(db, "bullets");
-
-  const editor = document.getElementById("editor");
-
-  function renderLine(text = "") {
-    const line = document.createElement("div");
-    line.className = "bullet-line";
-
-    const bullet = document.createElement("span");
-    bullet.className = "bullet";
-    bullet.textContent = "•";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "bullet-input";
-    input.value = text;
-
-    input.addEventListener("change", async () => {
-      if (input.value.trim() !== "") {
-        await addDoc(bulletsRef, { text: input.value });
-      }
-    });
-
-    line.appendChild(bullet);
-    line.appendChild(input);
-    editor.appendChild(line);
-  }
-
-  onSnapshot(bulletsRef, (snapshot) => {
-    editor.innerHTML = "";
-    snapshot.forEach(doc => {
-      renderLine(doc.data().text);
-    });
-  });
-
-  renderLine();
-</script>
 </body>
 </html>
