@@ -45,6 +45,7 @@ input {
   font-family: inherit;
   font-size: inherit;
   width: 100%;
+  caret-color: #fff;
 }
 </style>
 </head>
@@ -62,10 +63,7 @@ import {
   deleteDoc,
   updateDoc,
   doc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -79,9 +77,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 const bulletsRef = collection(db, "bullets");
-const bulletsQuery = query(bulletsRef, orderBy("created"));
 
 const editor = document.getElementById("editor");
 
@@ -89,8 +85,8 @@ function render(snapshot) {
   editor.innerHTML = "";
 
   snapshot.forEach(docSnap => {
-    const data = docSnap.data();
     const id = docSnap.id;
+    const data = docSnap.data();
 
     const line = document.createElement("div");
     line.className = "line";
@@ -99,27 +95,23 @@ function render(snapshot) {
     bullet.textContent = "•";
 
     const input = document.createElement("input");
-    input.value = data.text;
+    input.value = data.text || "";
 
+    // ENTER → nytt punkt
     input.addEventListener("keydown", async (e) => {
-
-      // ENTER → nytt dokument
       if (e.key === "Enter") {
         e.preventDefault();
-        await addDoc(bulletsRef, {
-          text: "",
-          created: serverTimestamp()
-        });
+        await addDoc(bulletsRef, { text: "" });
       }
 
-      // BACKSPACE på tom linje → slett dokument
+      // BACKSPACE på tom → slett
       if (e.key === "Backspace" && input.value === "") {
         e.preventDefault();
         await deleteDoc(doc(db, "bullets", id));
       }
     });
 
-    // Oppdater tekst fortløpende
+    // Oppdater tekst live
     input.addEventListener("input", async () => {
       await updateDoc(doc(db, "bullets", id), {
         text: input.value
@@ -132,8 +124,8 @@ function render(snapshot) {
   });
 }
 
-// Live sync
-onSnapshot(bulletsQuery, (snapshot) => {
+// 🔄 Live sync
+onSnapshot(bulletsRef, (snapshot) => {
   render(snapshot);
 });
 </script>
