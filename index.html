@@ -1,126 +1,139 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GJØRE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GJØRE</title>
+
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      background: #000;
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 80px;
-    }
+body {
+  background: #000;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+}
 
-    h1 {
-      font-size: 14px;
-      font-weight: bold;
-      letter-spacing: 0.1em;
-      margin-bottom: 28px;
-      text-align: center;
-    }
+h1 {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-bottom: 28px;
+}
 
-    #editor {
-      width: 500px;
-      max-width: 90vw;
-    }
+#editor {
+  width: 500px;
+  max-width: 90vw;
+}
 
-    .bullet-line {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
+.bullet-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
 
-    .bullet {
-      flex-shrink: 0;
-      user-select: none;
-    }
+.bullet {
+  user-select: none;
+}
 
-    .bullet-input {
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      width: 100%;
-      caret-color: #fff;
-      line-height: 1.4;
-    }
-  </style>
+.bullet-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  width: 100%;
+  caret-color: #fff;
+}
+</style>
 </head>
 
 <body>
-  <h1>GJØRE</h1>
-  <div id="editor"></div>
+<h1>GJØRE</h1>
+<div id="editor"></div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot }
-      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  orderBy,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // 🔥 Din Firebase-config
-    const firebaseConfig = {
-      apiKey: "AIzaSyAClp1TFph3mI0KpUTc4bKInjTWLVxfQus",
-      authDomain: "gjore-e16c6.firebaseapp.com",
-      projectId: "gjore-e16c6",
-      storageBucket: "gjore-e16c6.firebasestorage.app",
-      messagingSenderId: "340297877908",
-      appId: "1:340297877908:web:630d807c0261d677986781"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyAClp1TFph3mI0KpUTc4bKInjTWLVxfQus",
+  authDomain: "gjore-e16c6.firebaseapp.com",
+  projectId: "gjore-e16c6",
+  storageBucket: "gjore-e16c6.firebasestorage.app",
+  messagingSenderId: "340297877908",
+  appId: "1:340297877908:web:630d807c0261d677986781"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const bulletsRef = collection(db, "bullets");
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    const editor = document.getElementById("editor");
+const bulletsRef = collection(db, "bullets");
+const bulletsQuery = query(bulletsRef, orderBy("created"));
 
-    function createLine(text = "") {
-      const line = document.createElement("div");
-      line.className = "bullet-line";
+const editor = document.getElementById("editor");
 
-      const bullet = document.createElement("span");
-      bullet.className = "bullet";
-      bullet.textContent = "•";
+function createLine(text = "") {
+  const line = document.createElement("div");
+  line.className = "bullet-line";
 
-      const input = document.createElement("input");
-      input.type = "text";
-      input.className = "bullet-input";
-      input.value = text;
+  const bullet = document.createElement("span");
+  bullet.className = "bullet";
+  bullet.textContent = "•";
 
-      input.addEventListener("keydown", async (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          if (input.value.trim() !== "") {
-            await addDoc(bulletsRef, { text: input.value });
-          }
-        }
-      });
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "bullet-input";
+  input.value = text;
 
-      line.appendChild(bullet);
-      line.appendChild(input);
-      editor.appendChild(line);
+  input.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      if (input.value.trim() !== "") {
+        await addDoc(bulletsRef, { 
+          text: input.value,
+          created: serverTimestamp()
+        });
+      }
     }
+  });
 
-    // 🔄 Live oppdatering
-    onSnapshot(bulletsRef, (snapshot) => {
-      editor.innerHTML = "";
-      snapshot.forEach(doc => {
-        createLine(doc.data().text);
-      });
-      createLine(); // tom linje nederst
-    });
-  </script>
+  line.appendChild(bullet);
+  line.appendChild(input);
+  editor.appendChild(line);
+}
+
+// 🔄 Live sync
+onSnapshot(bulletsQuery, (snapshot) => {
+  editor.innerHTML = "";
+  snapshot.forEach(doc => {
+    createLine(doc.data().text);
+  });
+  createLine(); // alltid én tom linje nederst
+});
+</script>
+
 </body>
 </html>
