@@ -68,14 +68,14 @@
     import { getFirestore, collection, addDoc, onSnapshot }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // 🔥 LIM INN DIN EGEN CONFIG HER
+    // 🔥 Din Firebase-config
     const firebaseConfig = {
-      apiKey: "LIM_INN_DIN_CONFIG_HER",
-      authDomain: "LIM_INN_DIN_CONFIG_HER",
-      projectId: "LIM_INN_DIN_CONFIG_HER",
-      storageBucket: "LIM_INN_DIN_CONFIG_HER",
-      messagingSenderId: "LIM_INN_DIN_CONFIG_HER",
-      appId: "LIM_INN_DIN_CONFIG_HER"
+      apiKey: "AIzaSyAClp1TFph3mI0KpUTc4bKInjTWLVxfQus",
+      authDomain: "gjore-e16c6.firebaseapp.com",
+      projectId: "gjore-e16c6",
+      storageBucket: "gjore-e16c6.firebasestorage.app",
+      messagingSenderId: "340297877908",
+      appId: "1:340297877908:web:630d807c0261d677986781"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -84,7 +84,7 @@
 
     const editor = document.getElementById("editor");
 
-    function createInput(text = "") {
+    function createLine(text = "") {
       const line = document.createElement("div");
       line.className = "bullet-line";
 
@@ -111,13 +111,13 @@
       editor.appendChild(line);
     }
 
-    // 🔄 Live sync
+    // 🔄 Live oppdatering
     onSnapshot(bulletsRef, (snapshot) => {
       editor.innerHTML = "";
       snapshot.forEach(doc => {
-        createInput(doc.data().text);
+        createLine(doc.data().text);
       });
-      createInput(); // tom linje nederst
+      createLine(); // tom linje nederst
     });
   </script>
 </body>
