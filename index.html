@@ -93,7 +93,7 @@ const bulletsRef = collection(db, "bullets");
 
 const editor = document.getElementById("editor");
 
-function createLine(text = "", id = null, focus = false) {
+function createLine(text = "", id = null) {
   const line = document.createElement("div");
   line.className = "bullet-line";
 
@@ -106,68 +106,49 @@ function createLine(text = "", id = null, focus = false) {
   input.className = "bullet-input";
   input.value = text;
 
+  // ➕ Legg til nytt punkt
   input.addEventListener("keydown", async (e) => {
-
-    // ENTER → lag nytt punkt og flytt fokus
     if (e.key === "Enter") {
       e.preventDefault();
-
-      const value = input.value.trim();
-      if (value !== "") {
-        if (!id) {
-          await addDoc(bulletsRef, {
-            text: value,
-            created: serverTimestamp()
-          });
-        }
+      if (input.value.trim() !== "") {
+        await addDoc(bulletsRef, {
+          text: input.value.trim(),
+          created: serverTimestamp()
+        });
       }
-
-      createLine("", null, true);
-    }
-
-    // BACKSPACE på tom linje → slett og hopp bakover
-    if (e.key === "Backspace" && input.value === "") {
-      e.preventDefault();
-
-      if (id) {
-        await deleteDoc(doc(db, "bullets", id));
-      }
-
-      const prev = line.previousElementSibling;
-      if (prev) {
-        const prevInput = prev.querySelector("input");
-        prevInput.focus();
-        prevInput.selectionStart = prevInput.value.length;
-      }
-
-      line.remove();
     }
   });
 
-  // Lagre redigering automatisk
+  // ✏️ Oppdater eller slett ved blur
   input.addEventListener("blur", async () => {
     const value = input.value.trim();
 
+    if (!id && value === "") return;
+
+    if (id && value === "") {
+      await deleteDoc(doc(db, "bullets", id));
+      return;
+    }
+
     if (id && value !== "") {
-      await updateDoc(doc(db, "bullets", id), { text: value });
+      await updateDoc(doc(db, "bullets", id), {
+        text: value
+      });
     }
   });
 
   line.appendChild(bullet);
   line.appendChild(input);
   editor.appendChild(line);
-
-  if (focus) {
-    input.focus();
-  }
 }
 
+// 🔄 Live synk
 onSnapshot(bulletsRef, (snapshot) => {
   editor.innerHTML = "";
   snapshot.forEach((docSnap) => {
     createLine(docSnap.data().text, docSnap.id);
   });
-  createLine(); // alltid én tom linje nederst
+  createLine(); // tom linje nederst
 });
 </script>
 
