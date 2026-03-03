@@ -5,11 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GJØRE</title>
 
-<link rel="icon" type="image/png" href="icon.png">
-<link rel="apple-touch-icon" href="icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -27,7 +22,6 @@ body {
 
 h1 {
   font-size: 14px;
-  font-weight: bold;
   letter-spacing: 0.1em;
   margin-bottom: 28px;
 }
@@ -37,26 +31,20 @@ h1 {
   max-width: 90vw;
 }
 
-.bullet-line {
+.line {
   display: flex;
-  align-items: center;
   gap: 8px;
   margin-bottom: 6px;
 }
 
-.bullet {
-  user-select: none;
-}
-
-.bullet-input {
+input {
   background: transparent;
   border: none;
   outline: none;
   color: #fff;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-family: inherit;
+  font-size: inherit;
   width: 100%;
-  caret-color: #fff;
 }
 </style>
 </head>
@@ -75,6 +63,8 @@ import {
   updateDoc,
   doc,
   onSnapshot,
+  query,
+  orderBy,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -89,66 +79,62 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
 const bulletsRef = collection(db, "bullets");
+const bulletsQuery = query(bulletsRef, orderBy("created"));
 
 const editor = document.getElementById("editor");
 
-function createLine(text = "", id = null) {
-  const line = document.createElement("div");
-  line.className = "bullet-line";
+function render(snapshot) {
+  editor.innerHTML = "";
 
-  const bullet = document.createElement("span");
-  bullet.className = "bullet";
-  bullet.textContent = "•";
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const id = docSnap.id;
 
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "bullet-input";
-  input.value = text;
+    const line = document.createElement("div");
+    line.className = "line";
 
-  // ➕ Legg til nytt punkt
-  input.addEventListener("keydown", async (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (input.value.trim() !== "") {
+    const bullet = document.createElement("span");
+    bullet.textContent = "•";
+
+    const input = document.createElement("input");
+    input.value = data.text;
+
+    input.addEventListener("keydown", async (e) => {
+
+      // ENTER → nytt dokument
+      if (e.key === "Enter") {
+        e.preventDefault();
         await addDoc(bulletsRef, {
-          text: input.value.trim(),
+          text: "",
           created: serverTimestamp()
         });
       }
-    }
-  });
 
-  // ✏️ Oppdater eller slett ved blur
-  input.addEventListener("blur", async () => {
-    const value = input.value.trim();
+      // BACKSPACE på tom linje → slett dokument
+      if (e.key === "Backspace" && input.value === "") {
+        e.preventDefault();
+        await deleteDoc(doc(db, "bullets", id));
+      }
+    });
 
-    if (!id && value === "") return;
-
-    if (id && value === "") {
-      await deleteDoc(doc(db, "bullets", id));
-      return;
-    }
-
-    if (id && value !== "") {
+    // Oppdater tekst fortløpende
+    input.addEventListener("input", async () => {
       await updateDoc(doc(db, "bullets", id), {
-        text: value
+        text: input.value
       });
-    }
-  });
+    });
 
-  line.appendChild(bullet);
-  line.appendChild(input);
-  editor.appendChild(line);
+    line.appendChild(bullet);
+    line.appendChild(input);
+    editor.appendChild(line);
+  });
 }
 
-// 🔄 Live synk
-onSnapshot(bulletsRef, (snapshot) => {
-  editor.innerHTML = "";
-  snapshot.forEach((docSnap) => {
-    createLine(docSnap.data().text, docSnap.id);
-  });
-  createLine(); // tom linje nederst
+// Live sync
+onSnapshot(bulletsQuery, (snapshot) => {
+  render(snapshot);
 });
 </script>
 
