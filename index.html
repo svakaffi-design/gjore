@@ -22,7 +22,7 @@
     }
 
     h1 {
-      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-size: clamp(1.2rem, 4vw, 2rem);
       font-weight: 700;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -94,6 +94,12 @@
 
   <h1>GJØRE</h1>
   <div id="liste"></div>
+
+  <br><br><br><br><br><br><br><br><br><br>
+
+  <h1>HANDLE</h1>
+  <div id="liste2"></div>
+
   <div id="status">●</div>
 
   <script type="module">
@@ -112,34 +118,40 @@
 
     const app    = initializeApp(firebaseConfig);
     const db     = getDatabase(app);
-    const dbRef  = ref(db, "gjore/items");
-    const liste  = document.getElementById("liste");
     const status = document.getElementById("status");
 
-    let fjerntOppdatert = false;
+    // ---- GJØRE-liste ----
+    const dbRef1 = ref(db, "gjore/items");
+    const liste1 = document.getElementById("liste");
+    let fjerntOppdatert1 = false;
+
+    // ---- HANDLE-liste ----
+    const dbRef2 = ref(db, "handle/items");
+    const liste2 = document.getElementById("liste2");
+    let fjerntOppdatert2 = false;
 
     function autosize(ta) {
       ta.style.height = "auto";
       ta.style.height = ta.scrollHeight + "px";
     }
 
-    function hentAlt() {
+    function hentAlt(liste) {
       return [...liste.querySelectorAll("textarea")].map(ta => ta.value);
     }
 
     let lagreTimeout;
-    function lagre() {
+    function lagre(dbRef, liste, flagSetter) {
       clearTimeout(lagreTimeout);
       lagreTimeout = setTimeout(() => {
         status.textContent = "↑"; status.style.color = "#888";
-        fjerntOppdatert = true;
-        set(dbRef, hentAlt())
+        flagSetter(true);
+        set(dbRef, hentAlt(liste))
           .then(() => { status.textContent = "●"; status.style.color = "#333"; })
           .catch(() => { status.textContent = "✕"; status.style.color = "#a00"; });
       }, 400);
     }
 
-    function leggTilRad(tekst = "", etterElement = null, fokus = false) {
+    function leggTilRad(tekst = "", etterElement = null, fokus = false, listeEl, dbRef, flagSetter) {
       const rad = document.createElement("div");
       rad.className = "rad";
 
@@ -154,17 +166,17 @@
 
       ta.addEventListener("input", () => {
         autosize(ta);
-        lagre();
+        lagre(dbRef, listeEl, flagSetter);
       });
 
       ta.addEventListener("keydown", (e) => {
-        const rader = [...liste.querySelectorAll("textarea")];
+        const rader = [...listeEl.querySelectorAll("textarea")];
         const idx   = rader.indexOf(ta);
 
         if (e.key === "Enter") {
           e.preventDefault();
-          leggTilRad("", rad, true);
-          lagre();
+          leggTilRad("", rad, true, listeEl, dbRef, flagSetter);
+          lagre(dbRef, listeEl, flagSetter);
         }
 
         if (e.key === "Backspace" && ta.value === "" && rader.length > 1) {
@@ -175,7 +187,7 @@
             forrige.focus();
             forrige.setSelectionRange(forrige.value.length, forrige.value.length);
           }
-          lagre();
+          lagre(dbRef, listeEl, flagSetter);
         }
       });
 
@@ -185,7 +197,7 @@
       if (etterElement) {
         etterElement.after(rad);
       } else {
-        liste.appendChild(rad);
+        listeEl.appendChild(rad);
       }
 
       autosize(ta);
@@ -194,21 +206,31 @@
       return ta;
     }
 
-    function byggListe(items) {
-      liste.innerHTML = "";
+    function byggListe(items, listeEl, dbRef, flagSetter) {
+      listeEl.innerHTML = "";
       const arr = (items && items.length) ? items : [""];
-      arr.forEach(t => leggTilRad(t));
+      arr.forEach(t => leggTilRad(t, null, false, listeEl, dbRef, flagSetter));
     }
 
-    // Vis alltid ett kulepunkt med en gang mens Firebase laster
-    leggTilRad("", null, true);
+    // Init begge lister
+    leggTilRad("", null, true, liste1, dbRef1, v => fjerntOppdatert1 = v);
+    leggTilRad("", null, false, liste2, dbRef2, v => fjerntOppdatert2 = v);
 
-    onValue(dbRef, (snap) => {
-      if (fjerntOppdatert) { fjerntOppdatert = false; return; }
+    onValue(dbRef1, (snap) => {
+      if (fjerntOppdatert1) { fjerntOppdatert1 = false; return; }
       const data = snap.val();
       if (!data) return;
       const arr = Array.isArray(data) ? data : Object.values(data);
-      if (arr.length) byggListe(arr);
+      if (arr.length) byggListe(arr, liste1, dbRef1, v => fjerntOppdatert1 = v);
+      status.textContent = "●"; status.style.color = "#333";
+    });
+
+    onValue(dbRef2, (snap) => {
+      if (fjerntOppdatert2) { fjerntOppdatert2 = false; return; }
+      const data = snap.val();
+      if (!data) return;
+      const arr = Array.isArray(data) ? data : Object.values(data);
+      if (arr.length) byggListe(arr, liste2, dbRef2, v => fjerntOppdatert2 = v);
       status.textContent = "●"; status.style.color = "#333";
     });
 
